@@ -184,14 +184,17 @@ double MPPICore::stage_cost(const std::vector<double>& X, const std::vector<doub
     
 
     // 3.制御入力コスト（制御入力の大きさに対するペナルティ）
-    double control_cost = 0.1 * (U[0] * U[0] + U[1] * U[1]);
-    
+    // 速度を出すために重みを大幅に削減 (0.1 -> 0.01)
+    double control_cost = 0.01 * (U[0] * U[0] + U[1] * U[1]);
+
     // 4.急な加速に対するコスト（前回制御入力との差分）
     double accel_linear = (U[0] - U_prev[0]) / dt_;   // 線形加速度
     double accel_angular = (U[1] - U_prev[1]) / dt_;  // 角加速度
-    double acceleration_cost = 1.0 * (accel_linear * accel_linear + accel_angular * accel_angular);
-    
-    return dist_cost + obstacle_cost + control_cost + acceleration_cost;
+    // 加速度ペナルティを削減して速度向上を許可 (1.0 -> 0.05)
+    double acceleration_cost = 0.05 * (accel_linear * accel_linear + accel_angular * accel_angular);
+
+    // 距離コストの重みを増やして目標への到達を優先 (係数10.0を追加)
+    return 10.0 * dist_cost + obstacle_cost + control_cost + acceleration_cost;
 }
 
 double MPPICore::terminal_cost(const std::vector<double>& X, const Pose2D& target_point)
@@ -200,7 +203,8 @@ double MPPICore::terminal_cost(const std::vector<double>& X, const Pose2D& targe
     double dx = X[0] - target_point[0];
     double dy = X[1] - target_point[1];
     dist_cost = std::sqrt(dx * dx + dy * dy) ;
-    return dist_cost;
+    // 終端での距離コストも同様に重みを増やす
+    return 10.0 * dist_cost;
 }
 
 double MPPICore::getStateCost() {
