@@ -17,6 +17,8 @@ using ControlSeqSamples = std::vector<ControlSeq>; // Multiple control sequences
 using NoiseSeq = std::vector<Control>;   // Noise sequence for one sample (same structure as Control)
 using NoiseSamples = std::vector<NoiseSeq>; // Noise for all samples
 using VelocityCommand = std::vector<double>; // [linear_velocity, angular_velocity]
+using PathPoint2D = std::array<double, 2>;
+using Path2D = std::vector<PathPoint2D>;
 
 struct MPPIParams
 {
@@ -31,11 +33,17 @@ struct MPPIParams
     std::vector<double> sigma; // Noise standard deviation
     double max_linear_velocity;
     double max_angular_velocity;
+    double min_linear_velocity;
+    double path_heading_weight;
+    double max_linear_accel;
+    double max_angular_accel;
 
     // weight
     double weight_goal;
     double weight_obstacle;
     double weight_velocity;
+    double path_distance_weight;
+    double goal_distance_weight;
 };
 
 #endif // COMMON_HPP

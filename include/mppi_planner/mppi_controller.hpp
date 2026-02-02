@@ -4,6 +4,7 @@
 #include "mppi_planner/common.hpp"
 #include "mppi_planner/diff_drive.hpp"
 #include <nav_msgs/msg/occupancy_grid.hpp>
+#include <mutex>
 #include <random>
 #include <omp.h> 
 
@@ -23,9 +24,11 @@ public:
     );
     
     void setCostMap(const nav_msgs::msg::OccupancyGrid& costmap);
+    void setReferencePath(const Path2D& path);
     
     double getStateCost();
     double getControlCost();
+    const StateSeqSamples& getStateSamples() const;
 
 private:
     void setParams(const MPPIParams& params);
@@ -33,6 +36,9 @@ private:
     void computeWeights();
     double stage_cost(const std::vector<double>& X, const std::vector<double>& U, const Pose2D& target_point, const std::vector<double>& U_prev);
     double terminal_cost(const std::vector<double>& X, const Pose2D& target_point);
+    double distanceToPath(const std::vector<double>& X) const;
+    bool computePathDistanceAndHeading(const std::vector<double>& X, double& distance, double& heading) const;
+    static double normalizeAngle(double angle);
 
     // MPPI parameters
     int K_;  // Number of samples
@@ -44,6 +50,12 @@ private:
     std::vector<double> sigma_;  // Noise standard deviation
     double max_linear_velocity_;
     double max_angular_velocity_;
+    double min_linear_velocity_;
+    double max_linear_accel_;
+    double max_angular_accel_;
+    double path_distance_weight_;
+    double goal_distance_weight_;
+    double path_heading_weight_;
 
     // State and control variables
     StateSeqSamples state_sample_;
@@ -65,6 +77,9 @@ private:
     double local_costmap_resolution_;
     int map_size_;
     std::vector<int8_t> obstacle_grid_;
+    Path2D ref_path_;
+    Path2D path_for_cost_;
+    mutable std::mutex path_mutex_;
 
     // Target point
     Pose2D target_point_;
@@ -79,6 +94,7 @@ private:
     // Random number generation
     static const int random_seed_ = 623;
     std::mt19937 generator_;
+    std::vector<std::mt19937> thread_generators_;
     
     // Timing
     double calc_time_;

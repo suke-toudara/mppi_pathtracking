@@ -10,6 +10,7 @@
 #include <geometry_msgs/msg/twist.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -30,7 +31,7 @@ private:
     // publisher
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr mppi_optimal_traj_pub_;
-    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr mppi_sample_traj_pub_;
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr mppi_sample_traj_markers_pub_;
 
     // subscriber
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr ref_path_sub_;
@@ -49,6 +50,25 @@ private:
     double max_angular_velocity_;
     double sigma_steer_;
     double goal_tolerance_;
+    bool start_turn_in_place_;
+    double start_turn_angle_threshold_;
+    double start_turn_release_threshold_;
+    double start_turn_angular_speed_;
+    double start_turn_max_distance_;
+    double loop_detection_tolerance_;
+    double loop_lookahead_distance_;
+    bool ref_path_is_loop_ = false;
+    double loop_exit_distance_;
+    bool loop_has_left_start_ = false;
+    double loop_start_x_{0.0};
+    double loop_start_y_{0.0};
+
+    enum class ControllerState {
+      WAIT,
+      ROTATE,
+      TRACK
+    };
+    ControllerState state_{ControllerState::WAIT};
 
     // target point 
     Pose2D target_point_;
@@ -84,6 +104,11 @@ private:
     void CostmapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
     void controlLoop();
     bool targetReached();
+    void publishSampledTrajectories();
+    void clearSampledTrajectories();
+    bool computePathHeading(double& heading_yaw) const;
+    bool computeStartPathHeading(double& heading_yaw) const;
+    static double normalizeAngle(double angle);
 };
 } // namespace mppi
 
